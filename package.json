@@ -1,0 +1,28 @@
+{
+    "name": "cordova-plugin-ip-mac-address",
+    "version": "1.0.0",
+    "description": "cordova-plugin-ip-mac-address",
+    "cordova": {
+        "id": "cordova-plugin-ip-mac-address",
+        "platforms": [
+            "android",
+            "ios"
+        ]
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/surya/cordova-plugin-ip-mac-address"
+    },
+    "keywords": [
+        "ecosystem:cordova",
+        "cordova",
+        "cordova-ios",
+        "cordova-android",
+        "ocr"
+    ],
+    "devDependencies": {
+        "xcode": "0.9.1"
+    },
+    "author": "govindharaju.adabala@techvedika.com",
+    "license": "ISC"
+}

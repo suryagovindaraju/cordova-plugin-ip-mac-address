@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<plugin xmlns="http://www.phonegap.com/ns/plugins/1.0" id="cordova-plugin-ip-mac-address" version="1.0.0">
+    <name>OCR SDK</name>
+    <engines>
+        <engine name="cordova" version=">=3.4.0" />
+    </engines>
+    
+    <js-module src="www/addressimpl.js" name="addressimpl">
+        <clobbers target="addressimpl" />
+    </js-module>
+
+    <platform name="android">
+        <config-file target="res/xml/config.xml" parent="/*">
+            <feature name="AddressImpl">
+                <param name="android-package" value="com.tv.plugin.AddressImpl" />
+            </feature>
+        </config-file>
+        
+        <config-file target="AndroidManifest.xml" parent="/manifest">
+            <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+        </config-file>
+        
+        <source-file src="src/android/AddressImpl.java" target-dir="src/com/tv/plugin/" />
+
+    </platform>
+
+    <platform name="ios">
+        <config-file target="config.xml" parent="/*">
+            <feature name="AddressImpl">
+                <param name="ios-package" value="AddressImpl" />
+            </feature>
+        </config-file>
+        <header-file src="src/ios/AddressImpl.h" />
+        <source-file src="src/ios/AddressImpl.m" />
+    </platform>
+
+</plugin>
