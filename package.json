@@ -1,6 +1,6 @@
 {
     "name": "cordova-plugin-ip-mac-address",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "cordova-plugin-ip-mac-address",
     "cordova": {
         "id": "cordova-plugin-ip-mac-address",
