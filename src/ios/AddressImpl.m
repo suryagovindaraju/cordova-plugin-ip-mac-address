@@ -5,6 +5,7 @@
 #include <net/if_dl.h>
 #include <ifaddrs.h>
 #include <arpa/inet.h>
+#import "Reachability.h"
 
 @interface AddressImpl () {
     //MARK: - Class Properties
@@ -17,35 +18,23 @@
 
 - (void)getIPAddress:(CDVInvokedUrlCommand*)command
 {
-
-    addressCallbackId = [command callbackId];
     
+    addressCallbackId = [command callbackId];
+        
     NSString* request = [[command arguments] objectAtIndex:0];
     NSLog(@"Request <<<<<<<<<< : %@",request);
+    NSString *ipAddress = @" ";
     
-    NSString *ipAddress = @"error";
-    struct ifaddrs *interfaces = NULL;
-    struct ifaddrs *temp_addr = NULL;
-    int success = 0;
-    // retrieve the current interfaces - returns 0 on success
-    success = getifaddrs(&interfaces);
-    if (success == 0) {
-        // Loop through linked list of interfaces
-        temp_addr = interfaces;
-        while(temp_addr != NULL) {
-            if(temp_addr->ifa_addr->sa_family == AF_INET) {
-                // Check if interface is en0 which is the wifi connection on the iPhone
-                if([[NSString stringWithUTF8String:temp_addr->ifa_name] isEqualToString:@"en0"]) {
-                    // Get NSString from C String
-                    ipAddress = [NSString stringWithUTF8String:inet_ntoa(((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr)];
-                }
-            }
-
-            temp_addr = temp_addr->ifa_next;
-        }
+    Reachability *reachability = [Reachability reachabilityWithHostName:@"www.google.com"];
+    if([reachability currentReachabilityStatus] == NotReachable) {
+        return;
+    } else { 
+        if([reachability isLocalWiFiAvailable]) {
+            ipAddress = [self getWifiIPAddress];
+        } else
+            ipAddress  = [self getCarrierIP];
     }
-    // Free memory
-    freeifaddrs(interfaces);
+    
     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:ipAddress];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:addressCallbackId];
 }
@@ -109,6 +98,7 @@
         NSString *macAddressString = [NSString stringWithFormat:@"%02X:%02X:%02X:%02X:%02X:%02X",
                                       macAddress[0], macAddress[1], macAddress[2],
                                       macAddress[3], macAddress[4], macAddress[5]];
+        //NSLog(@"Mac Address: %@", macAddressString);
         
         // Release the buffer memory
         free(msgBuffer);
@@ -116,6 +106,68 @@
         [self.commandDelegate sendPluginResult:pluginResult callbackId:addressCallbackId];
     }
     
+}
+
+-(NSString *)getWifiIPAddress {
+    
+    NSString *ipAddress = @" ";
+    struct ifaddrs *interfaces = NULL;
+    struct ifaddrs *temp_addr = NULL;
+    int success = 0;
+    // retrieve the current interfaces - returns 0 on success
+    success = getifaddrs(&interfaces);
+    if (success == 0) {
+        // Loop through linked list of interfaces
+        temp_addr = interfaces;
+        while(temp_addr != NULL) {
+            if(temp_addr->ifa_addr->sa_family == AF_INET) {
+                // Check if interface is en0 which is the wifi connection on the iPhone
+                if([[NSString stringWithUTF8String:temp_addr->ifa_name] isEqualToString:@"en0"]) {
+                    // Get NSString from C String
+                    ipAddress = [NSString stringWithUTF8String:inet_ntoa(((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr)];                    
+                }
+                
+            }
+            
+            temp_addr = temp_addr->ifa_next;
+        }
+    }
+    // Free memory
+    freeifaddrs(interfaces);
+    return ipAddress;
+}
+
+- (NSString *)getCarrierIP {
+    
+    struct ifaddrs *interfaces = NULL;
+    struct ifaddrs *temp_addr = NULL;
+    NSString *cellAddress = @"";
+    NSString *cellSubnet = @"";
+    
+    // retrieve the current interfaces - returns 0 on success
+    if(!getifaddrs(&interfaces)) {
+        // Loop through linked list of interfaces
+        temp_addr = interfaces;
+        while(temp_addr != NULL) {
+            sa_family_t sa_type = temp_addr->ifa_addr->sa_family;
+            if(sa_type == AF_INET || sa_type == AF_INET6) {
+                NSString *name = [NSString stringWithUTF8String:temp_addr->ifa_name];
+                NSString *addr = [NSString stringWithUTF8String:inet_ntoa(((struct sockaddr_in *)temp_addr->ifa_addr)->sin_addr)]; // pdp_ip0
+                //NSLog(@"NAME: \"%@\" addr: %@", name, addr); // see for yourself
+                
+                if([name isEqualToString:@"pdp_ip0"] && ![addr isEqualToString:@"0.0.0.0"]) {
+                    // Interface is the cell connection on the iPhone
+                    cellAddress = addr;
+                    cellSubnet = [NSString stringWithUTF8String:inet_ntoa(((struct sockaddr_in *)temp_addr->ifa_netmask)->sin_addr)];
+                }
+            }
+            temp_addr = temp_addr->ifa_next;
+        }
+        // Free memory
+        freeifaddrs(interfaces);
+    }
+    
+    return cellAddress;
 }
 
 @end

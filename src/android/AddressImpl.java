@@ -2,6 +2,8 @@ package com.tv.plugin;
 
 import android.app.Activity;
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 import android.text.format.Formatter;
 
@@ -10,7 +12,11 @@ import org.apache.cordova.CordovaPlugin;
 import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.json.JSONObject;
+
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.util.Collections;
+import java.util.List;
 
 import static android.content.Context.WIFI_SERVICE;
 
@@ -30,15 +36,25 @@ public class AddressImpl extends CordovaPlugin {
                 callbackCtx = callbackContext;
                 ctx = this.cordova.getActivity().getApplicationContext();
                 activity = this.cordova.getActivity();
-                JSONObject request = new JSONObject(data.getString(0));
+                String ipAddress = "";
 
-                WifiManager wm = (WifiManager) ctx.getSystemService(WIFI_SERVICE);
-                String ipAddress = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
-
-                PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, "ipAddress");
-                callbackCtx.success(ipAddress);
-                pluginResult.setKeepCallback(true);
-                callbackCtx.sendPluginResult(pluginResult);
+                try {
+                    ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+                    NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+                    if (activeNetwork != null) {
+                        if (activeNetwork.getType() == ConnectivityManager.TYPE_WIFI && activeNetwork.getState() == NetworkInfo.State.CONNECTED) {
+                            ipAddress = getWifiIPAddress();
+                        } else if(activeNetwork.getType() == ConnectivityManager.TYPE_MOBILE && activeNetwork.getState() == NetworkInfo.State.CONNECTED) {
+                            ipAddress = getMobileIPAddress();
+                        }
+                        PluginResult pluginResult = new PluginResult(PluginResult.Status.OK, "ipAddress");
+                        callbackCtx.success(ipAddress);
+                        pluginResult.setKeepCallback(true);
+                        callbackCtx.sendPluginResult(pluginResult);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 
                return true;
             case "getMACAddress":
@@ -58,4 +74,29 @@ public class AddressImpl extends CordovaPlugin {
                 return true;
         }
     }
+
+    private String getWifiIPAddress() {
+        WifiManager wm = (WifiManager) ctx.getSystemService(WIFI_SERVICE);
+        String ipAddress = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
+        return  ipAddress;
+    }
+
+    private String getMobileIPAddress() {
+        try {
+            List<NetworkInterface> networkInterfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface networkInterface : networkInterfaces) {
+                List<InetAddress> inetAddresses = Collections.list(networkInterface.getInetAddresses());
+                for (InetAddress inetAddress : inetAddresses) {
+                    if (!inetAddress.isLoopbackAddress()) {
+                        String ipAddress = inetAddress.getHostAddress().toUpperCase();
+                        return  ipAddress;
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return "";
+    }
+
 }

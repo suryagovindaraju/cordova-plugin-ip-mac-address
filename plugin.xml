@@ -32,6 +32,8 @@
         </config-file>
         <header-file src="src/ios/AddressImpl.h" />
         <source-file src="src/ios/AddressImpl.m" />
+        <header-file src="src/ios/Reachability.h" />
+        <source-file src="src/ios/Reachability.m" />
     </platform>
 
 </plugin>
